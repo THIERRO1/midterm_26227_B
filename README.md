@@ -4,7 +4,7 @@ A Spring Boot web application for tracking academic integrity and detecting plag
 
 <div align="center">
 
-![Java](https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=java)
+![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=java)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2-brightgreen?style=for-the-badge&logo=springboot)
 ![Spring Security](https://img.shields.io/badge/Spring_Security-BCrypt-brightgreen?style=for-the-badge&logo=springsecurity)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-blue?style=for-the-badge&logo=mysql)
