@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Province Filter', ~{::content})}">
+<body>
+<div th:fragment="content">
+
+    <!--
+        PROVINCE FILTERING FEATURE
+        ===========================
+        This page demonstrates:
+        1. Retrieving users by province CODE  → findUsersByProvinceCode(code)
+        2. Retrieving users by province NAME  → findUsersByProvinceName(name)
+
+        The repository uses custom JPQL queries:
+        "SELECT u FROM User u WHERE u.province.provinceCode = :provinceCode"
+
+        This navigates the Many-to-One relationship:
+        User → Province (via province_id foreign key)
+    -->
+
+    <!-- Filter Card -->
+    <div class="province-filter">
+        <h3 style="font-family:'Playfair Display',serif; font-size:16px; color:var(--navy); margin-bottom:16px;">
+            🗺️ Filter Users by Province
+        </h3>
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px;">
+            Uses <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;">findUsersByProvinceCode()</code>
+            or <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;">findUsersByProvinceName()</code>
+            — custom JPQL queries in UserRepository
+        </p>
+
+        <form th:action="@{/users/by-province}" method="get">
+            <div class="filter-row">
+
+                <!-- Filter by CODE -->
+                <div class="form-group">
+                    <label>Province Code</label>
+                    <select name="code">
+                        <option value="">— Select Code —</option>
+                        <option th:each="p : ${provinces}"
+                                th:value="${p.provinceCode}"
+                                th:text="${p.provinceCode + ' — ' + p.provinceName}"
+                                th:selected="${p.provinceCode == selectedCode}">KGL</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; align-items:flex-end; padding-bottom:2px; color:var(--text-muted); font-weight:500;">OR</div>
+
+                <!-- Filter by NAME -->
+                <div class="form-group">
+                    <label>Province Name</label>
+                    <input type="text" name="name" th:value="${selectedName}"
+                           placeholder="e.g. Kigali"/>
+                </div>
+
+                <div style="display:flex; align-items:flex-end;">
+                    <button type="submit" class="btn btn-primary">🔍 Filter</button>
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                    <a th:href="@{/users/by-province}" class="btn btn-secondary">✕ Clear</a>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+    <!-- Results Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">👥 Results</span>
+            <span style="font-size:13px; background:#f1f5f9; padding:4px 12px; border-radius:20px; color:var(--text-muted);"
+                  th:text="${filterUsed}">All Provinces</span>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Student ID</th>
+                        <th>Role</th>
+                        <th>Province</th>
+                        <th>Province Code</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="user, iter : ${users}">
+                        <td class="text-muted" th:text="${iter.count}">1</td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div style="width:30px;height:30px;background:var(--blue);border-radius:50%;
+                                            display:flex;align-items:center;justify-content:center;
+                                            color:#fff;font-size:12px;font-weight:600;"
+                                     th:text="${#strings.substring(user.fullName,0,1)}">A</div>
+                                <span th:text="${user.fullName}">Name</span>
+                            </div>
+                        </td>
+                        <td class="text-muted" th:text="${user.email}">email</td>
+                        <td th:text="${user.studentId ?: '—'}">—</td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="'badge-' + ${#strings.toLowerCase(user.role?.roleName ?: 'student')}"
+                                  th:text="${user.role?.roleName ?: '—'}">STUDENT</span>
+                        </td>
+                        <td th:text="${user.province?.provinceName ?: '—'}">Province</td>
+                        <td>
+                            <code style="background:#f1f5f9; padding:3px 8px; border-radius:5px; font-size:12px;"
+                                  th:text="${user.province?.provinceCode ?: '—'}">KGL</code>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(users)}">
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-icon">🗺️</div>
+                                <p>No users found for this province</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Count -->
+        <div style="padding:14px 20px; font-size:13px; color:var(--text-muted); border-top:1px solid var(--border);"
+             th:if="${not #lists.isEmpty(users)}"
+             th:text="${#lists.size(users)} + ' user(s) found'">
+        </div>
+    </div>
+
+    <!-- JPQL Query Explanation Box -->
+    <div style="margin-top:24px; background:#0f1f3d; border-radius:var(--radius); padding:24px; color:#e2e8f0;">
+        <p style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px;">Repository Query Logic</p>
+        <pre style="font-family:monospace; font-size:13px; line-height:2; color:#93c5fd; overflow-x:auto;">
+// Filter by Province CODE
+@Query("SELECT u FROM User u WHERE u.province.provinceCode = :provinceCode")
+List&lt;User&gt; findUsersByProvinceCode(@Param("provinceCode") String provinceCode);
+
+// Filter by Province NAME (case-insensitive)
+@Query("SELECT u FROM User u WHERE LOWER(u.province.provinceName)
+        LIKE LOWER(CONCAT('%', :provinceName, '%'))")
+List&lt;User&gt; findUsersByProvinceName(@Param("provinceName") String provinceName);
+        </pre>
+    </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Case Detail', ~{::content})}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+
+    <a th:href="@{/cases}" style="color:var(--text-muted); text-decoration:none; font-size:13px; display:inline-flex; align-items:center; gap:6px; margin-bottom:20px;">
+        ← Back to Cases
+    </a>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; max-width:960px;">
+
+        <!-- Case Info -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">⚠️ Case Details</span>
+                <span class="badge"
+                      th:classappend="${case.status == 'PENDING' ? 'badge-pending' :
+                                        case.status == 'UNDER_INVESTIGATION' ? 'badge-investigation' :
+                                        case.status == 'RESOLVED' ? 'badge-resolved' : 'badge-moderate'}"
+                      th:text="${case.status}">Status</span>
+            </div>
+            <div class="card-body">
+                <div class="detail-row">
+                    <span class="detail-label">Case Reference</span>
+                    <code style="background:var(--surface-3); padding:4px 10px; border-radius:6px; font-size:14px; font-weight:600;"
+                          th:text="${case.caseReference}">CASE-001</code>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Description</span>
+                    <span class="detail-value" style="font-size:13px;" th:text="${case.description ?: '—'}">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Opened</span>
+                    <span class="detail-value" th:text="${case.openedAt != null ? #temporals.format(case.openedAt, 'dd MMM yyyy, HH:mm') : '—'}">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Resolved</span>
+                    <span class="detail-value" th:text="${case.resolvedAt != null ? #temporals.format(case.resolvedAt, 'dd MMM yyyy, HH:mm') : 'Not yet resolved'}">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Resolution Notes</span>
+                    <span class="detail-value" style="font-size:13px;" th:text="${case.resolutionNotes ?: 'None'}">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Update Status Form -->
+        <div class="card">
+            <div class="card-header"><span class="card-title">🔄 Update Case Status</span></div>
+            <div class="card-body">
+                <form th:action="@{/cases/{id}/update-status(id=${case.id})}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <div class="form-group" style="margin-bottom:16px;">
+                        <label>New Status</label>
+                        <select name="status" required>
+                            <option value="PENDING"             th:selected="${case.status == 'PENDING'}">⏳ Pending</option>
+                            <option value="UNDER_INVESTIGATION" th:selected="${case.status == 'UNDER_INVESTIGATION'}">🔎 Under Investigation</option>
+                            <option value="RESOLVED"            th:selected="${case.status == 'RESOLVED'}">✅ Resolved</option>
+                            <option value="DISMISSED"           th:selected="${case.status == 'DISMISSED'}">❌ Dismissed</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:16px;">
+                        <label>Resolution Notes (optional)</label>
+                        <textarea name="notes" rows="3" placeholder="Add notes about the resolution..."
+                                  th:text="${case.resolutionNotes}"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Linked report info -->
+    <div class="card" style="margin-top:20px; max-width:960px;" th:if="${case.report != null}">
+        <div class="card-header">
+            <span class="card-title">🔍 Linked Plagiarism Report</span>
+            <span style="font-size:12px; color:var(--text-muted);">One-to-One: Case ↔ Report</span>
+        </div>
+        <div class="card-body" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px;">
+            <div>
+                <div class="detail-label" style="margin-bottom:4px;">Similarity Score</div>
+                <div style="font-size:28px; font-weight:700; color:var(--danger);"
+                     th:text="${case.report.similarityScore} + '%'">0%</div>
+            </div>
+            <div>
+                <div class="detail-label" style="margin-bottom:4px;">Risk Status</div>
+                <span class="badge"
+                      th:classappend="'badge-' + ${#strings.toLowerCase(case.report.similarityStatus ?: 'high')}"
+                      th:text="${case.report.similarityStatus}">CRITICAL</span>
+            </div>
+            <div>
+                <div class="detail-label" style="margin-bottom:4px;">Submission</div>
+                <a th:href="@{/submissions/{id}(id=${case.report.submission?.id})}"
+                   style="color:var(--blue); text-decoration:none; font-size:14px;"
+                   th:text="${case.report.submission?.title != null ? #strings.abbreviate(case.report.submission.title, 35) : '—'}">Title</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

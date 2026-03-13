@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Submission Detail', ~{::content})}">
+<body>
+<div th:fragment="content">
+
+    <a th:href="@{/submissions}" style="color:var(--text-muted); text-decoration:none; font-size:13px; display:inline-flex; align-items:center; gap:6px; margin-bottom:20px;">
+        ← Back to Submissions
+    </a>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; max-width:1000px;">
+
+        <!-- Submission Info Card -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📄 Submission Details</span>
+                <span class="badge"
+                      th:classappend="'badge-' + ${#strings.toLowerCase(submission.status ?: 'pending')}"
+                      th:text="${submission.status ?: 'PENDING'}">Status</span>
+            </div>
+            <div class="card-body">
+                <div class="detail-row">
+                    <span class="detail-label">Title</span>
+                    <span class="detail-value" th:text="${submission.title}">Title</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Student</span>
+                    <span class="detail-value" th:text="${submission.student?.fullName ?: '—'}">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Course</span>
+                    <span class="detail-value" th:text="${submission.course?.courseName ?: '—'}">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">File Type</span>
+                    <span class="detail-value" th:text="${submission.fileType ?: '—'}">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Submitted</span>
+                    <span class="detail-value"
+                          th:text="${submission.submissionDate != null ? #temporals.format(submission.submissionDate, 'dd MMM yyyy, HH:mm') : '—'}">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Plagiarism Report Card (One-to-One relationship) -->
+        <div class="card" th:if="${submission.plagiarismReport != null}">
+            <div class="card-header">
+                <span class="card-title">🔍 Plagiarism Report</span>
+                <span style="font-size:11px; color:var(--text-muted);">One-to-One with Submission</span>
+            </div>
+            <div class="card-body">
+
+                <!-- Big Score Display -->
+                <div style="text-align:center; padding:20px 0 24px;">
+                    <div style="font-family:'Playfair Display',serif; font-size:56px; font-weight:700; line-height:1;"
+                         th:style="${submission.plagiarismReport.similarityScore >= 70 ? 'color:var(--danger)' :
+                                     submission.plagiarismReport.similarityScore >= 40 ? 'color:var(--warning)' :
+                                     submission.plagiarismReport.similarityScore >= 20 ? 'color:#f59e0b' : 'color:var(--success)'}"
+                         th:text="${submission.plagiarismReport.similarityScore} + '%'">0%</div>
+                    <div style="margin-top:8px;">
+                        <span class="badge"
+                              th:classappend="'badge-' + ${#strings.toLowerCase(submission.plagiarismReport.similarityStatus ?: 'low')}"
+                              th:text="${submission.plagiarismReport.similarityStatus ?: 'LOW'}">LOW</span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div style="margin-bottom:20px;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:6px;">
+                        <span>Similarity Score</span>
+                        <span th:text="${submission.plagiarismReport.similarityScore} + '%'">0%</span>
+                    </div>
+                    <div style="height:10px; background:var(--surface-3); border-radius:100px; overflow:hidden;">
+                        <div th:classappend="'similarity-bar-fill ' + ${#strings.toLowerCase(submission.plagiarismReport.similarityStatus ?: 'low')}"
+                             th:style="'height:100%; border-radius:100px; width:' + ${submission.plagiarismReport.similarityScore} + '%'"></div>
+                    </div>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Matched Sources</span>
+                    <span class="detail-value" th:text="${submission.plagiarismReport.matchedSources ?: '—'} + ' source(s)'">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Notes</span>
+                    <span class="detail-value" style="font-size:13px;" th:text="${submission.plagiarismReport.analysisNotes ?: '—'}">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Generated At</span>
+                    <span class="detail-value" style="font-size:13px;"
+                          th:text="${submission.plagiarismReport.generatedAt != null ? #temporals.format(submission.plagiarismReport.generatedAt, 'dd MMM yyyy, HH:mm') : '—'}">—</span>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- No report yet -->
+        <div class="card" th:if="${submission.plagiarismReport == null}">
+            <div class="card-body" style="text-align:center; padding:40px;">
+                <div style="font-size:36px; margin-bottom:12px;">⏳</div>
+                <p style="color:var(--text-muted);">Plagiarism analysis pending...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Relationship explanation -->
+    <div style="max-width:1000px; margin-top:20px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px;">
+        <p style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
+            One-to-One Relationship Explained
+        </p>
+        <p style="font-size:13px; color:var(--text-muted); line-height:1.8;">
+            Each <code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">Submission</code>
+            has exactly <strong>one</strong>
+            <code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">PlagiarismReport</code>.
+            The <code>plagiarism_reports</code> table stores a
+            <code>submission_id</code> foreign key with a
+            <code>UNIQUE</code> constraint — ensuring one report per submission.
+            In JPA: <code>@OneToOne</code> + <code>@JoinColumn(unique=true)</code>.
+        </p>
+    </div>
+
+</div>
+</body>
+</html>

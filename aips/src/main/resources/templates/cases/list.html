@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Misconduct Cases', ~{::content})}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+
+    <!-- Summary stats -->
+    <div class="stats-grid mb-8" style="grid-template-columns: repeat(3, 1fr); margin-bottom:24px;">
+        <div class="stat-card" style="--card-accent:#ef4444;">
+            <div class="stat-icon red">⏳</div>
+            <div>
+                <div class="stat-value" th:text="${pendingCount}">0</div>
+                <div class="stat-label">Pending</div>
+            </div>
+        </div>
+        <div class="stat-card" style="--card-accent:#f59e0b;">
+            <div class="stat-icon amber">🔎</div>
+            <div>
+                <div class="stat-value" th:text="${investigationCount}">0</div>
+                <div class="stat-label">Under Investigation</div>
+            </div>
+        </div>
+        <div class="stat-card" style="--card-accent:#10b981;">
+            <div class="stat-icon green">✅</div>
+            <div>
+                <div class="stat-value" th:text="${resolvedCount}">0</div>
+                <div class="stat-label">Resolved</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter by status -->
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+        <form th:action="@{/cases}" method="get" style="display:flex; gap:8px;">
+            <select name="status" onchange="this.form.submit()" style="padding:9px 12px; font-size:13px;">
+                <option value="">All Statuses</option>
+                <option value="PENDING"              th:selected="${selectedStatus == 'PENDING'}">Pending</option>
+                <option value="UNDER_INVESTIGATION"  th:selected="${selectedStatus == 'UNDER_INVESTIGATION'}">Under Investigation</option>
+                <option value="RESOLVED"             th:selected="${selectedStatus == 'RESOLVED'}">Resolved</option>
+                <option value="DISMISSED"            th:selected="${selectedStatus == 'DISMISSED'}">Dismissed</option>
+            </select>
+            <select name="sortBy" onchange="this.form.submit()" style="padding:9px 12px; font-size:13px;">
+                <option value="openedAt"  th:selected="${sortBy == 'openedAt'}">Sort by Date</option>
+                <option value="status"    th:selected="${sortBy == 'status'}">Sort by Status</option>
+            </select>
+            <select name="dir" onchange="this.form.submit()" style="padding:9px 12px; font-size:13px;">
+                <option value="desc" th:selected="${dir == 'desc'}">↓ Newest First</option>
+                <option value="asc"  th:selected="${dir == 'asc'}">↑ Oldest First</option>
+            </select>
+        </form>
+        <span class="text-muted" style="font-size:13px;" th:text="${totalElements} + ' cases'"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">⚠️ Misconduct Cases</span>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Case Ref</th>
+                        <th>Similarity Score</th>
+                        <th>Submission</th>
+                        <th>Status</th>
+                        <th>Opened</th>
+                        <th>Resolved</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="mc : ${cases}">
+                        <td>
+                            <code style="background:var(--surface-3); padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;"
+                                  th:text="${mc.caseReference}">CASE-001</code>
+                        </td>
+                        <td>
+                            <div th:if="${mc.report != null}" class="similarity-bar-wrap">
+                                <div class="similarity-bar-track">
+                                    <div class="similarity-bar-fill"
+                                         th:classappend="${#strings.toLowerCase(mc.report.similarityStatus ?: 'critical')}"
+                                         th:style="'width:' + ${mc.report.similarityScore} + '%'"></div>
+                                </div>
+                                <span class="similarity-pct"
+                                      th:text="${mc.report.similarityScore} + '%'">0%</span>
+                            </div>
+                            <span th:if="${mc.report == null}" class="text-muted">—</span>
+                        </td>
+                        <td th:text="${mc.report?.submission?.title != null ? #strings.abbreviate(mc.report.submission.title, 28) : '—'}">Title</td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${mc.status == 'PENDING' ? 'badge-pending' :
+                                                   mc.status == 'UNDER_INVESTIGATION' ? 'badge-investigation' :
+                                                   mc.status == 'RESOLVED' ? 'badge-resolved' : 'badge-moderate'}"
+                                  th:text="${mc.status}">Status</span>
+                        </td>
+                        <td class="text-muted" style="font-size:12px;"
+                            th:text="${mc.openedAt != null ? #temporals.format(mc.openedAt, 'dd MMM yyyy') : '—'}">—</td>
+                        <td class="text-muted" style="font-size:12px;"
+                            th:text="${mc.resolvedAt != null ? #temporals.format(mc.resolvedAt, 'dd MMM yyyy') : '—'}">—</td>
+                        <td>
+                            <a th:href="@{/cases/{id}(id=${mc.id})}" class="btn btn-secondary btn-sm">View</a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(cases)}">
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-icon">⚠️</div>
+                                <p>No misconduct cases found</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a class="page-btn" th:classappend="${currentPage == 0 ? 'disabled' : ''}"
+               th:href="@{/cases(page=${currentPage - 1}, size=10, sortBy=${sortBy}, dir=${dir})}">‹</a>
+            <a th:each="i : ${#numbers.sequence(0, totalPages - 1)}" class="page-btn"
+               th:classappend="${i == currentPage ? 'active' : ''}"
+               th:href="@{/cases(page=${i}, size=10, sortBy=${sortBy}, dir=${dir})}"
+               th:text="${i + 1}">1</a>
+            <a class="page-btn" th:classappend="${currentPage == totalPages - 1 ? 'disabled' : ''}"
+               th:href="@{/cases(page=${currentPage + 1}, size=10, sortBy=${sortBy}, dir=${dir})}">›</a>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

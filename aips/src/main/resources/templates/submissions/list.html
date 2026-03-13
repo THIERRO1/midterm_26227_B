@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Submissions', ~{::content})}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+    <div class="alert alert-error"   th:if="${error}"   th:text="${error}"></div>
+
+    <!-- Toolbar -->
+    <div style="display:flex; align-items:center; gap:16px; margin-bottom:24px; flex-wrap:wrap;">
+
+        <form th:action="@{/submissions}" method="get" style="flex:1; min-width:240px;">
+            <div class="search-bar">
+                <input type="text" name="search" th:value="${search}" placeholder="Search submissions..."/>
+                <button type="submit">🔍</button>
+            </div>
+        </form>
+
+        <form th:action="@{/submissions}" method="get" style="display:flex; gap:8px;">
+            <select name="sortBy" onchange="this.form.submit()" style="padding:9px 12px; font-size:13px;">
+                <option value="submissionDate" th:selected="${sortBy == 'submissionDate'}">Sort by Date</option>
+                <option value="title"          th:selected="${sortBy == 'title'}">Sort by Title</option>
+                <option value="status"         th:selected="${sortBy == 'status'}">Sort by Status</option>
+            </select>
+            <select name="dir" onchange="this.form.submit()" style="padding:9px 12px; font-size:13px;">
+                <option value="desc" th:selected="${dir == 'desc'}">↓ Newest First</option>
+                <option value="asc"  th:selected="${dir == 'asc'}">↑ Oldest First</option>
+            </select>
+        </form>
+
+        <a th:href="@{/submissions/new}" class="btn btn-primary">📤 Upload Assignment</a>
+    </div>
+
+    <!-- Table Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">📄 All Submissions</span>
+            <span class="text-muted" style="font-size:13px;" th:text="${totalElements} + ' records'"></span>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Title</th>
+                        <th>Student</th>
+                        <th>Course</th>
+                        <th>Type</th>
+                        <th>Similarity</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="sub, iter : ${submissions}">
+                        <td class="text-muted" th:text="${iter.count + (currentPage * 10)}">1</td>
+                        <td>
+                            <a th:href="@{/submissions/{id}(id=${sub.id})}"
+                               style="color:var(--blue); text-decoration:none; font-weight:500;"
+                               th:text="${#strings.abbreviate(sub.title, 35)}">Title</a>
+                        </td>
+                        <td th:text="${sub.student?.fullName ?: '—'}">Student</td>
+                        <td>
+                            <span style="font-size:12px; background:var(--surface-3); padding:3px 8px; border-radius:5px;"
+                                  th:text="${sub.course?.courseCode ?: '—'}">CS301</span>
+                        </td>
+                        <td>
+                            <span style="font-size:11px; font-weight:600; color:var(--text-muted);"
+                                  th:text="${sub.fileType ?: '—'}">PDF</span>
+                        </td>
+                        <td>
+                            <div th:if="${sub.plagiarismReport != null}" class="similarity-bar-wrap">
+                                <div class="similarity-bar-track">
+                                    <div class="similarity-bar-fill"
+                                         th:classappend="${#strings.toLowerCase(sub.plagiarismReport.similarityStatus ?: 'low')}"
+                                         th:style="'width:' + ${sub.plagiarismReport.similarityScore} + '%'"></div>
+                                </div>
+                                <span class="similarity-pct"
+                                      th:text="${sub.plagiarismReport.similarityScore} + '%'">0%</span>
+                            </div>
+                            <span th:if="${sub.plagiarismReport == null}" class="text-muted" style="font-size:12px;">Pending</span>
+                        </td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="'badge-' + ${#strings.toLowerCase(sub.status ?: 'pending')}"
+                                  th:text="${sub.status ?: 'PENDING'}">Status</span>
+                        </td>
+                        <td class="text-muted" style="font-size:12px;"
+                            th:text="${sub.submissionDate != null ? #temporals.format(sub.submissionDate, 'dd MMM, HH:mm') : '—'}">Date</td>
+                        <td>
+                            <a th:href="@{/submissions/{id}(id=${sub.id})}" class="btn btn-secondary btn-sm">View</a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(submissions)}">
+                        <td colspan="9">
+                            <div class="empty-state">
+                                <div class="empty-icon">📄</div>
+                                <p>No submissions found</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a class="page-btn" th:classappend="${currentPage == 0 ? 'disabled' : ''}"
+               th:href="@{/submissions(page=${currentPage - 1}, size=10, sortBy=${sortBy}, dir=${dir})}">‹</a>
+
+            <a th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+               class="page-btn"
+               th:classappend="${i == currentPage ? 'active' : ''}"
+               th:href="@{/submissions(page=${i}, size=10, sortBy=${sortBy}, dir=${dir})}"
+               th:text="${i + 1}">1</a>
+
+            <a class="page-btn" th:classappend="${currentPage == totalPages - 1 ? 'disabled' : ''}"
+               th:href="@{/submissions(page=${currentPage + 1}, size=10, sortBy=${sortBy}, dir=${dir})}">›</a>
+        </div>
+
+        <div style="text-align:center; padding:12px; font-size:12px; color:#94a3b8;"
+             th:if="${totalPages > 0}"
+             th:text="'Page ' + (${currentPage + 1}) + ' of ' + ${totalPages}">
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

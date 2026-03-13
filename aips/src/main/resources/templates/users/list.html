@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Users', ~{::content})}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+    <div class="alert alert-error"   th:if="${error}"   th:text="${error}"></div>
+
+    <!-- Toolbar -->
+    <div style="display:flex; align-items:center; gap:16px; margin-bottom:24px; flex-wrap:wrap;">
+
+        <!-- Search -->
+        <form th:action="@{/users}" method="get" style="flex:1; min-width:240px;">
+            <div class="search-bar">
+                <input type="text" name="search" th:value="${search}" placeholder="Search by name..."/>
+                <button type="submit">🔍</button>
+            </div>
+        </form>
+
+        <!-- Sort controls -->
+        <form th:action="@{/users}" method="get" style="display:flex; gap:8px; align-items:center;">
+            <select name="sortBy" onchange="this.form.submit()" style="padding:9px 12px; font-size:13px;">
+                <option value="fullName"  th:selected="${sortBy == 'fullName'}">Sort by Name</option>
+                <option value="email"     th:selected="${sortBy == 'email'}">Sort by Email</option>
+                <option value="createdAt" th:selected="${sortBy == 'createdAt'}">Sort by Date</option>
+            </select>
+            <select name="dir" onchange="this.form.submit()" style="padding:9px 12px; font-size:13px;">
+                <option value="asc"  th:selected="${dir == 'asc'}">↑ Ascending</option>
+                <option value="desc" th:selected="${dir == 'desc'}">↓ Descending</option>
+            </select>
+            <input type="hidden" name="sortBy" th:value="${sortBy}"/>
+        </form>
+
+        <a th:href="@{/users/new}" class="btn btn-primary">+ Add User</a>
+    </div>
+
+    <!-- Table Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">👥 All Users</span>
+            <span class="text-muted" style="font-size:13px;"
+                  th:text="${totalElements} + ' total records'"></span>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th><a th:href="@{/users(sortBy='fullName', dir=${dir == 'asc' ? 'desc' : 'asc'})}">Name ⇅</a></th>
+                        <th><a th:href="@{/users(sortBy='email',    dir=${dir == 'asc' ? 'desc' : 'asc'})}">Email ⇅</a></th>
+                        <th>Student ID</th>
+                        <th>Role</th>
+                        <th>Province</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="user, iter : ${users}">
+                        <td class="text-muted" th:text="${iter.index + 1 + (currentPage * 10)}">1</td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div style="width:32px;height:32px;background:var(--blue);border-radius:50%;
+                                            display:flex;align-items:center;justify-content:center;
+                                            color:#fff;font-size:13px;font-weight:600;flex-shrink:0;"
+                                     th:text="${#strings.substring(user.fullName,0,1)}">A</div>
+                                <span th:text="${user.fullName}">Name</span>
+                            </div>
+                        </td>
+                        <td class="text-muted" th:text="${user.email}">email</td>
+                        <td th:text="${user.studentId ?: '—'}">—</td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="'badge-' + ${#strings.toLowerCase(user.role?.roleName ?: 'student')}"
+                                  th:text="${user.role?.roleName ?: '—'}">STUDENT</span>
+                        </td>
+                        <td th:text="${user.province?.provinceName ?: '—'}">Province</td>
+                        <td>
+                            <span class="badge"
+                                  th:class="${user.isActive ? 'badge badge-low' : 'badge badge-high'}"
+                                  th:text="${user.isActive ? 'Active' : 'Inactive'}">Active</span>
+                        </td>
+                        <td>
+                            <a th:href="@{/users/{id}(id=${user.id})}" class="btn btn-secondary btn-sm">View</a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(users)}">
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <div class="empty-icon">👥</div>
+                                <p>No users found</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a class="page-btn" th:classappend="${currentPage == 0 ? 'disabled' : ''}"
+               th:href="@{/users(page=${currentPage - 1}, size=10, sortBy=${sortBy}, dir=${dir})}">‹</a>
+
+            <a th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+               class="page-btn"
+               th:classappend="${i == currentPage ? 'active' : ''}"
+               th:href="@{/users(page=${i}, size=10, sortBy=${sortBy}, dir=${dir})}"
+               th:text="${i + 1}">1</a>
+
+            <a class="page-btn" th:classappend="${currentPage == totalPages - 1 ? 'disabled' : ''}"
+               th:href="@{/users(page=${currentPage + 1}, size=10, sortBy=${sortBy}, dir=${dir})}">›</a>
+        </div>
+
+        <!-- Pagination info -->
+        <div style="text-align:center; padding:12px; font-size:12px; color:#94a3b8;"
+             th:if="${totalPages > 0}"
+             th:text="'Page ' + (${currentPage + 1}) + ' of ' + ${totalPages} + ' (' + ${totalElements} + ' records)'">
+        </div>
+
+    </div>
+
+    <!-- Province Quick Filter -->
+    <div class="card" style="margin-top:20px;">
+        <div class="card-header">
+            <span class="card-title">🗺️ Quick Province Filter</span>
+            <a th:href="@{/users/by-province}" class="btn btn-secondary btn-sm">Advanced Filter</a>
+        </div>
+        <div class="card-body">
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <a th:each="p : ${provinces}"
+                   th:href="@{/users/by-province(code=${p.provinceCode})}"
+                   class="btn btn-secondary btn-sm"
+                   th:text="${p.provinceName}">Province</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

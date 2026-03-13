@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Course Detail', ~{::content})}">
+<body>
+<div th:fragment="content">
+    <a th:href="@{/courses}" style="color:var(--text-muted); text-decoration:none; font-size:13px; display:inline-flex; align-items:center; gap:6px; margin-bottom:20px;">← Back to Courses</a>
+
+    <div style="display:grid; grid-template-columns:1fr 2fr; gap:24px; max-width:900px;">
+        <div class="card" style="text-align:center; padding:32px 24px;">
+            <div style="width:64px; height:64px; background:#fffbeb; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 16px;">📚</div>
+            <code style="background:var(--surface-3); padding:6px 16px; border-radius:8px; font-size:18px; font-weight:700; color:var(--blue);" th:text="${course.courseCode}">CS301</code>
+            <h2 style="font-family:'Playfair Display',serif; font-size:16px; color:var(--navy); margin-top:12px;" th:text="${course.courseName}">Course Name</h2>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:8px;" th:text="${course.description ?: 'No description'}">Desc</p>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span class="card-title">Course Information</span></div>
+            <div class="card-body">
+                <div class="detail-row">
+                    <span class="detail-label">Course Code</span>
+                    <span class="detail-value" th:text="${course.courseCode}">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Credit Hours</span>
+                    <span class="detail-value" th:text="${course.creditHours ?: '—'}">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Semester</span>
+                    <span class="detail-value" th:text="${course.semester ?: '—'}">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Enrolled Students</span>
+                    <span class="detail-value" th:text="${course.enrolledStudents != null ? #sets.size(course.enrolledStudents) : 0}">0</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Total Submissions</span>
+                    <span class="detail-value" th:text="${course.submissions != null ? #lists.size(course.submissions) : 0}">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enrolled Students — demonstrates Many-to-Many -->
+    <div class="card" style="margin-top:20px; max-width:900px;" th:if="${course.enrolledStudents != null and not #sets.isEmpty(course.enrolledStudents)}">
+        <div class="card-header">
+            <span class="card-title">👥 Enrolled Students</span>
+            <span style="font-size:12px; color:var(--text-muted);">Many-to-Many via user_courses join table</span>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Student ID</th></tr></thead>
+                <tbody>
+                    <tr th:each="s, iter : ${course.enrolledStudents}">
+                        <td class="text-muted" th:text="${iter.count}">1</td>
+                        <td th:text="${s.fullName}">Name</td>
+                        <td class="text-muted" th:text="${s.email}">email</td>
+                        <td th:text="${s.studentId ?: '—'}">—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Plagiarism Reports', ~{::content})}">
+<body>
+<div th:fragment="content">
+
+    <!-- Summary stats row -->
+    <div class="stats-grid mb-8" style="grid-template-columns: repeat(4, 1fr); margin-bottom:24px;">
+        <div class="stat-card" style="--card-accent:#ef4444;">
+            <div class="stat-icon red">🚨</div>
+            <div>
+                <div class="stat-value" th:text="${criticalCount}">0</div>
+                <div class="stat-label">Critical (&gt;70%)</div>
+            </div>
+        </div>
+        <div class="stat-card" style="--card-accent:#f59e0b;">
+            <div class="stat-icon amber">⚠️</div>
+            <div>
+                <div class="stat-value" th:text="${highCount}">0</div>
+                <div class="stat-label">High (40–70%)</div>
+            </div>
+        </div>
+        <div class="stat-card" style="--card-accent:#f59e0b;">
+            <div class="stat-icon amber">📊</div>
+            <div>
+                <div class="stat-value" th:text="${moderateCount}">0</div>
+                <div class="stat-label">Moderate (20–40%)</div>
+            </div>
+        </div>
+        <div class="stat-card" style="--card-accent:#10b981;">
+            <div class="stat-icon green">✅</div>
+            <div>
+                <div class="stat-value" th:text="${lowCount}">0</div>
+                <div class="stat-label">Low (&lt;20%)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sort toolbar -->
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+        <form th:action="@{/reports}" method="get" style="display:flex; gap:8px;">
+            <select name="sortBy" onchange="this.form.submit()" style="padding:9px 12px; font-size:13px;">
+                <option value="similarityScore" th:selected="${sortBy == 'similarityScore'}">Sort by Score</option>
+                <option value="generatedAt"     th:selected="${sortBy == 'generatedAt'}">Sort by Date</option>
+                <option value="similarityStatus" th:selected="${sortBy == 'similarityStatus'}">Sort by Status</option>
+            </select>
+            <select name="dir" onchange="this.form.submit()" style="padding:9px 12px; font-size:13px;">
+                <option value="desc" th:selected="${dir == 'desc'}">↓ Highest First</option>
+                <option value="asc"  th:selected="${dir == 'asc'}">↑ Lowest First</option>
+            </select>
+        </form>
+        <span class="text-muted" style="font-size:13px;" th:text="${totalElements} + ' total reports'"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">🔍 Plagiarism Reports</span>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Submission Title</th>
+                        <th>Student</th>
+                        <th>Course</th>
+                        <th>Similarity Score</th>
+                        <th>Status</th>
+                        <th>Matched Sources</th>
+                        <th>Generated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="report, iter : ${reports}">
+                        <td class="text-muted" th:text="${iter.count + (currentPage * 10)}">1</td>
+                        <td>
+                            <a th:href="@{/submissions/{id}(id=${report.submission?.id})}"
+                               style="color:var(--blue); text-decoration:none; font-weight:500;"
+                               th:text="${report.submission?.title != null ? #strings.abbreviate(report.submission.title, 32) : '—'}">Title</a>
+                        </td>
+                        <td th:text="${report.submission?.student?.fullName ?: '—'}">Student</td>
+                        <td>
+                            <span style="font-size:12px; background:var(--surface-3); padding:3px 8px; border-radius:5px;"
+                                  th:text="${report.submission?.course?.courseCode ?: '—'}">CS301</span>
+                        </td>
+                        <td>
+                            <div class="similarity-bar-wrap">
+                                <div class="similarity-bar-track">
+                                    <div class="similarity-bar-fill"
+                                         th:classappend="${#strings.toLowerCase(report.similarityStatus ?: 'low')}"
+                                         th:style="'width:' + ${report.similarityScore} + '%'"></div>
+                                </div>
+                                <span class="similarity-pct"
+                                      th:style="${report.similarityScore >= 70 ? 'color:var(--danger)' :
+                                                  report.similarityScore >= 40 ? 'color:var(--warning)' : 'color:var(--success)'}"
+                                      th:text="${report.similarityScore} + '%'">0%</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="'badge-' + ${#strings.toLowerCase(report.similarityStatus ?: 'low')}"
+                                  th:text="${report.similarityStatus ?: 'LOW'}">LOW</span>
+                        </td>
+                        <td style="text-align:center;" th:text="${report.matchedSources ?: 0}">0</td>
+                        <td class="text-muted" style="font-size:12px;"
+                            th:text="${report.generatedAt != null ? #temporals.format(report.generatedAt, 'dd MMM, HH:mm') : '—'}">—</td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(reports)}">
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <div class="empty-icon">🔍</div>
+                                <p>No reports generated yet. Upload a submission first.</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination" th:if="${totalPages > 1}">
+            <a class="page-btn" th:classappend="${currentPage == 0 ? 'disabled' : ''}"
+               th:href="@{/reports(page=${currentPage - 1}, size=10, sortBy=${sortBy}, dir=${dir})}">‹</a>
+            <a th:each="i : ${#numbers.sequence(0, totalPages - 1)}" class="page-btn"
+               th:classappend="${i == currentPage ? 'active' : ''}"
+               th:href="@{/reports(page=${i}, size=10, sortBy=${sortBy}, dir=${dir})}"
+               th:text="${i + 1}">1</a>
+            <a class="page-btn" th:classappend="${currentPage == totalPages - 1 ? 'disabled' : ''}"
+               th:href="@{/reports(page=${currentPage + 1}, size=10, sortBy=${sortBy}, dir=${dir})}">›</a>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

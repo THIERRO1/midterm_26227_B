@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout('Dashboard', ~{::content})}">
+<body>
+<div th:fragment="content">
+
+    <!-- Flash messages -->
+    <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+    <div class="alert alert-error"   th:if="${error}"   th:text="${error}"></div>
+
+    <!-- ===== STATISTICS CARDS ===== -->
+    <div class="stats-grid mb-8">
+
+        <div class="stat-card" style="--card-accent: #1a56db;">
+            <div class="stat-icon blue">👨‍🎓</div>
+            <div>
+                <div class="stat-value" th:text="${totalStudents}">0</div>
+                <div class="stat-label">Total Students</div>
+            </div>
+        </div>
+
+        <div class="stat-card" style="--card-accent: #7c3aed;">
+            <div class="stat-icon purple">👩‍🏫</div>
+            <div>
+                <div class="stat-value" th:text="${totalLecturers}">0</div>
+                <div class="stat-label">Lecturers</div>
+            </div>
+        </div>
+
+        <div class="stat-card" style="--card-accent: #10b981;">
+            <div class="stat-icon green">📄</div>
+            <div>
+                <div class="stat-value" th:text="${totalSubmissions}">0</div>
+                <div class="stat-label">Total Submissions</div>
+            </div>
+        </div>
+
+        <div class="stat-card" style="--card-accent: #f59e0b;">
+            <div class="stat-icon amber">📚</div>
+            <div>
+                <div class="stat-value" th:text="${totalCourses}">0</div>
+                <div class="stat-label">Active Courses</div>
+            </div>
+        </div>
+
+        <div class="stat-card" style="--card-accent: #ef4444;">
+            <div class="stat-icon red">⚠️</div>
+            <div>
+                <div class="stat-value" th:text="${flaggedCases}">0</div>
+                <div class="stat-label">Open Cases</div>
+            </div>
+        </div>
+
+        <div class="stat-card" style="--card-accent: #ef4444;">
+            <div class="stat-icon red">🚨</div>
+            <div>
+                <div class="stat-value" th:text="${criticalReports}">0</div>
+                <div class="stat-label">Critical Reports</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== TWO COLUMN ROW ===== -->
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+
+        <!-- Recent Submissions -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📄 Recent Submissions</span>
+                <a th:href="@{/submissions}" class="btn btn-secondary btn-sm">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Student</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="sub : ${recentSubmissions}">
+                            <td>
+                                <a th:href="@{/submissions/{id}(id=${sub.id})}"
+                                   style="color:var(--blue); text-decoration:none; font-weight:500;"
+                                   th:text="${#strings.abbreviate(sub.title, 30)}">Title</a>
+                            </td>
+                            <td th:text="${sub.student?.fullName ?: '—'}">Student</td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="'badge-' + ${#strings.toLowerCase(sub.status ?: 'pending')}"
+                                      th:text="${sub.status ?: 'PENDING'}">Status</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(recentSubmissions)}">
+                            <td colspan="3" class="text-center text-muted" style="padding:30px;">
+                                No submissions yet
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- High Risk Reports -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">🚨 High Risk Reports</span>
+                <a th:href="@{/reports}" class="btn btn-secondary btn-sm">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Submission</th>
+                            <th>Score</th>
+                            <th>Risk</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="report : ${highRiskReports}">
+                            <td th:text="${report.submission?.title != null ? #strings.abbreviate(report.submission.title, 25) : '—'}">Title</td>
+                            <td>
+                                <div class="similarity-bar-wrap">
+                                    <div class="similarity-bar-track">
+                                        <div class="similarity-bar-fill"
+                                             th:classappend="${#strings.toLowerCase(report.similarityStatus ?: 'low')}"
+                                             th:style="'width:' + ${report.similarityScore} + '%'"></div>
+                                    </div>
+                                    <span class="similarity-pct" th:text="${report.similarityScore} + '%'">0%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="'badge-' + ${#strings.toLowerCase(report.similarityStatus ?: 'low')}"
+                                      th:text="${report.similarityStatus ?: 'LOW'}">LOW</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(highRiskReports)}">
+                            <td colspan="3" class="text-center text-muted" style="padding:30px;">
+                                ✅ No high-risk reports
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card mt-4" style="margin-top:24px;">
+        <div class="card-header">
+            <span class="card-title">⚡ Quick Actions</span>
+        </div>
+        <div class="card-body" style="display:flex; gap:12px; flex-wrap:wrap;">
+            <a th:href="@{/submissions/new}" class="btn btn-primary">📤 New Submission</a>
+            <a th:href="@{/users/new}"       class="btn btn-secondary">👤 Add User</a>
+            <a th:href="@{/courses/new}"     class="btn btn-secondary">📚 Add Course</a>
+            <a th:href="@{/users/by-province}" class="btn btn-secondary">🗺️ Province Filter</a>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
