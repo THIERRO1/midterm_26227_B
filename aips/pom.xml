@@ -14,7 +14,7 @@
     <groupId>com.academic</groupId>
     <artifactId>integrity</artifactId>
     <version>1.0.0</version>
-    <name>AIPS - Academic Integrity & Plagiarism System</name>
+    <name>AIPS - Academic Integrity and Plagiarism System</name>
     <description>Digital Academic Integrity and Plagiarism Tracking System</description>
 
     <properties>
