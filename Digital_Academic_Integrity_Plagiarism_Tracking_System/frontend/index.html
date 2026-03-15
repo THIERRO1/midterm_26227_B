@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AcademicGuard — Plagiarism Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0b0f;
+    --bg2: #111318;
+    --bg3: #181b22;
+    --surface: #1e2230;
+    --surface2: #252a3a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f2f8;
+    --text2: #8b93a8;
+    --text3: #5a6178;
+    --accent: #6c8fff;
+    --accent2: #4f6ee8;
+    --danger: #ff5c5c;
+    --warn: #ffaa3c;
+    --success: #3de0a0;
+    --info: #3dc7e0;
+    --purple: #b87fff;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --r: 10px;
+    --r2: 14px;
+    --r3: 20px;
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 99px; }
+
+  /* LAYOUT */
+  .layout { display: flex; height: 100vh; overflow: hidden; }
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow-y: auto;
+    position: relative;
+    z-index: 10;
+  }
+  .main { flex: 1; overflow-y: auto; background: var(--bg); }
+  .content { padding: 32px; max-width: 1300px; }
+
+  /* LOGO */
+  .logo-area {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 17px; color: var(--text);
+    text-decoration: none;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--purple) 100%);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .logo-sub { font-size: 10px; font-weight: 400; color: var(--text3); font-family: var(--font-body); letter-spacing: 0.05em; margin-top: 1px; }
+
+  /* NAV */
+  .nav-section { padding: 16px 12px 8px; }
+  .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--r);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 400;
+    transition: all 0.15s ease;
+    user-select: none;
+    border: 1px solid transparent;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--surface); color: var(--text); }
+  .nav-item.active {
+    background: rgba(108, 143, 255, 0.12);
+    color: var(--accent);
+    border-color: rgba(108, 143, 255, 0.2);
+    font-weight: 500;
+  }
+  .nav-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.8; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 99px;
+  }
+
+  /* SIDEBAR BOTTOM */
+  .sidebar-bottom {
+    margin-top: auto;
+    padding: 16px 12px;
+    border-top: 1px solid var(--border);
+  }
+  .base-url {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--r);
+    padding: 10px 12px;
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    color: var(--success);
+    word-break: break-all;
+  }
+  .base-label { font-size: 10px; color: var(--text3); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* PAGE HEADER */
+  .page-header { margin-bottom: 28px; }
+  .page-title { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--text); line-height: 1.2; }
+  .page-sub { font-size: 13px; color: var(--text3); margin-top: 4px; }
+  .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  /* STAT CARDS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    cursor: default;
+  }
+  .stat-card:hover { transform: translateY(-2px); border-color: var(--border2); }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: var(--r2) var(--r2) 0 0;
+  }
+  .stat-card.blue::before { background: var(--accent); }
+  .stat-card.green::before { background: var(--success); }
+  .stat-card.red::before { background: var(--danger); }
+  .stat-card.warn::before { background: var(--warn); }
+  .stat-card.purple::before { background: var(--purple); }
+  .stat-card.info::before { background: var(--info); }
+  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .stat-value { font-family: var(--font-display); font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .stat-card.blue .stat-value { color: var(--accent); }
+  .stat-card.green .stat-value { color: var(--success); }
+  .stat-card.red .stat-value { color: var(--danger); }
+  .stat-card.warn .stat-value { color: var(--warn); }
+  .stat-card.purple .stat-value { color: var(--purple); }
+  .stat-card.info .stat-value { color: var(--info); }
+  .stat-sub { font-size: 11px; color: var(--text3); }
+
+  /* SECTION CARD */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .card-title { font-family: var(--font-display); font-size: 15px; font-weight: 600; }
+  .card-body { padding: 20px; }
+  .card-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+  /* ENDPOINT TABLE */
+  .ep-table { width: 100%; border-collapse: collapse; }
+  .ep-table th {
+    text-align: left; padding: 10px 14px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text3); border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+  }
+  .ep-table td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .ep-table tr:last-child td { border-bottom: none; }
+  .ep-table tr:hover td { background: var(--bg3); }
+
+  /* METHOD BADGES */
+  .method {
+    display: inline-block;
+    font-size: 10px; font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.05em;
+    min-width: 52px;
+    text-align: center;
+  }
+  .method.GET    { background: rgba(61, 224, 160, 0.12); color: var(--success); border: 1px solid rgba(61,224,160,0.2); }
+  .method.POST   { background: rgba(108,143,255,0.12); color: var(--accent); border: 1px solid rgba(108,143,255,0.2); }
+  .method.PUT    { background: rgba(255,170,60,0.12); color: var(--warn); border: 1px solid rgba(255,170,60,0.2); }
+  .method.DELETE { background: rgba(255,92,92,0.12); color: var(--danger); border: 1px solid rgba(255,92,92,0.2); }
+  .method.PATCH  { background: rgba(184,127,255,0.12); color: var(--purple); border: 1px solid rgba(184,127,255,0.2); }
+
+  /* ENDPOINT PATH */
+  .ep-path { font-family: 'Courier New', monospace; font-size: 12.5px; color: var(--text); }
+  .ep-path span { color: var(--warn); }
+  .ep-req { font-size: 11px; color: var(--text3); }
+
+  /* REQ BADGE */
+  .req-tag {
+    display: inline-block;
+    font-size: 10px; font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(61,199,224,0.1);
+    color: var(--info);
+    border: 1px solid rgba(61,199,224,0.2);
+  }
+
+  /* STATUS BADGES */
+  .status {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 99px;
+  }
+  .status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
+  .status.clean { background: rgba(61,224,160,0.1); color: var(--success); }
+  .status.clean::before { background: var(--success); }
+  .status.flagged { background: rgba(255,170,60,0.1); color: var(--warn); }
+  .status.flagged::before { background: var(--warn); }
+  .status.plagiarized { background: rgba(255,92,92,0.1); color: var(--danger); }
+  .status.plagiarized::before { background: var(--danger); }
+  .status.pending { background: rgba(139,147,168,0.1); color: var(--text2); }
+  .status.pending::before { background: var(--text2); }
+  .status.open { background: rgba(108,143,255,0.1); color: var(--accent); }
+  .status.open::before { background: var(--accent); }
+  .status.resolved { background: rgba(61,224,160,0.1); color: var(--success); }
+  .status.resolved::before { background: var(--success); }
+
+  /* SIMILARITY BAR */
+  .sim-bar { display: flex; align-items: center; gap: 8px; }
+  .bar-track { flex: 1; height: 5px; background: var(--surface); border-radius: 99px; overflow: hidden; min-width: 80px; }
+  .bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+  .bar-pct { font-size: 12px; font-weight: 500; min-width: 38px; text-align: right; }
+
+  /* SAMPLE JSON */
+  .json-block {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    overflow-x: auto;
+    position: relative;
+  }
+  .json-key { color: var(--accent); }
+  .json-str { color: var(--success); }
+  .json-num { color: var(--warn); }
+  .json-bool { color: var(--purple); }
+  .json-null { color: var(--text3); }
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text2);
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { background: var(--surface2); color: var(--text); }
+
+  /* ERD */
+  .erd-wrap { overflow-x: auto; }
+
+  /* GRID 2 */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab {
+    padding: 10px 16px;
+    font-size: 13px; font-weight: 400;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+    border-radius: var(--r) var(--r) 0 0;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+
+  /* PAGE SECTIONS */
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* CHIP */
+  .chip {
+    display: inline-block;
+    font-size: 11px; padding: 3px 10px;
+    border-radius: 99px;
+    background: var(--surface);
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+
+  /* VIVA CARD */
+  .viva-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--r2) var(--r2) 0;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .viva-card:hover { border-left-color: var(--purple); background: var(--bg3); }
+  .viva-card.warn-border { border-left-color: var(--warn); }
+  .viva-card.success-border { border-left-color: var(--success); }
+  .viva-card.danger-border { border-left-color: var(--danger); }
+  .viva-q { font-weight: 500; font-size: 13.5px; margin-bottom: 6px; }
+  .viva-a { font-size: 13px; color: var(--text2); line-height: 1.7; display: none; }
+  .viva-a.show { display: block; }
+  .viva-toggle { font-size: 11px; color: var(--accent); cursor: pointer; }
+
+  /* PILL ROW */
+  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .pill {
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 99px;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    background: var(--surface);
+    font-family: 'Courier New', monospace;
+  }
+
+  /* SCROLL INDICATOR */
+  .scroll-top {
+    position: fixed; bottom: 24px; right: 24px;
+    width: 36px; height: 36px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 100;
+    font-size: 14px;
+  }
+  .scroll-top.visible { opacity: 1; pointer-events: all; }
+
+  /* HIGHLIGHT */
+  mark {
+    background: rgba(108,143,255,0.2);
+    color: var(--accent);
+    border-radius: 3px;
+    padding: 0 3px;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .content { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo-area">
+      <a class="logo" href="#" onclick="return false;">
+        <div class="logo-icon">🛡️</div>
+        <div>
+          AcademicGuard
+          <div class="logo-sub">Plagiarism Tracker v1.0</div>
+        </div>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active" onclick="showPage('dashboard', this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('erd', this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+        ERD Diagram
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">API Reference</div>
+      <div class="nav-item" onclick="showPage('users', this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Users
+      </div>
+      <div class="nav-item" onclick="showPage('locations', this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Locations
+      </div>
+      <div class="nav-item" onclick="showPage('submissions', this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Submissions
+      </div>
+      <div class="nav-item" onclick="showPage('cases', this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        Plagiarism Cases
+        <span class="nav-badge">4</span>
+      </div>
+      <div class="nav-item" onclick="showPage('departments', this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        Departments
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Advanced</div>
+      <div class="nav-item" onclick="showPage('pagination', this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+        Pagination & Sort
+      </div>
+      <div class="nav-item" onclick="showPage('province', this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+        Province Query
+      </div>
+      <div class="nav-item" onclick="showPage('viva', this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Viva-Voce
+      </div>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="base-label">Base URL</div>
+      <div class="base-url">http://localhost:8080</div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="mainScroll">
+    <div class="content">
+
+      <!-- ====== DASHBOARD PAGE ====== -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div class="header-row">
+            <div>
+              <div class="page-title">🛡️ AcademicGuard Dashboard</div>
+              <div class="page-sub">Digital Academic Integrity & Plagiarism Tracking System — Spring Boot + MySQL</div>
+            </div>
+            <a href="http://localhost:8080/swagger-ui.html" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(108,143,255,0.1);border:1px solid rgba(108,143,255,0.2);color:var(--accent);text-decoration:none;padding:8px 14px;border-radius:var(--r);font-size:12px;font-weight:500;">
+              🔗 Swagger UI
+            </a>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card blue">
+            <div class="stat-label">Total Users</div>
+            <div class="stat-value">12</div>
+            <div class="stat-sub">Students, Instructors, Admins</div>
+          </div>
+          <div class="stat-card warn">
+            <div class="stat-label">Submissions</div>
+            <div class="stat-value">20</div>
+            <div class="stat-sub">Across all courses</div>
+          </div>
+          <div class="stat-card red">
+            <div class="stat-label">Active Cases</div>
+            <div class="stat-value">4</div>
+            <div class="stat-sub">Plagiarism investigations</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-label">Clean Rate</div>
+            <div class="stat-value">35%</div>
+            <div class="stat-sub">7 clean submissions</div>
+          </div>
+          <div class="stat-card purple">
+            <div class="stat-label">Departments</div>
+            <div class="stat-value">3</div>
+            <div class="stat-sub">CS · BA · Engineering</div>
+          </div>
+          <div class="stat-card info">
+            <div class="stat-label">Courses</div>
+            <div class="stat-value">6</div>
+            <div class="stat-sub">With JPA relationships</div>
+          </div>
+        </div>
+
+        <!-- QUICK START GUIDE -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">🚀 Quick Start — Setup Guide</div>
+              <div class="card-sub">Get the backend running in under 5 minutes</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="tabs" id="setupTabs">
+              <div class="tab active" onclick="switchTab('setupTabs', 'setup1', this)">1. Prerequisites</div>
+              <div class="tab" onclick="switchTab('setupTabs', 'setup2', this)">2. Database</div>
+              <div class="tab" onclick="switchTab('setupTabs', 'setup3', this)">3. Run App</div>
+              <div class="tab" onclick="switchTab('setupTabs', 'setup4', this)">4. Test</div>
+            </div>
+            <div id="setup1" class="tab-content">
+              <div class="pill-row">
+                <span class="pill">Java 17+</span>
+                <span class="pill">Maven 3.6+</span>
+                <span class="pill">MySQL 8.0+</span>
+                <span class="pill">Postman</span>
+              </div>
+              <p style="margin-top:14px;color:var(--text2);font-size:13px;">Download and install all prerequisites. Java 17 is required for Spring Boot 3.x. MySQL must be running on port 3306.</p>
+            </div>
+            <div id="setup2" class="tab-content" style="display:none;">
+              <div class="json-block" style="font-size:12px;">
+<span style="color:var(--success);"># Create MySQL database</span>
+mysql -u root -p
+CREATE DATABASE plagiarism_tracker_db;
+EXIT;
+
+<span style="color:var(--success);"># Update application.properties</span>
+spring.datasource.password=<span style="color:var(--warn);">your_mysql_password</span>
+              </div>
+            </div>
+            <div id="setup3" class="tab-content" style="display:none;">
+              <div class="json-block" style="font-size:12px;">
+<span style="color:var(--success);"># Navigate to backend folder</span>
+cd plagiarism-tracker/backend
+
+<span style="color:var(--success);"># Build and run</span>
+mvn clean install -DskipTests
+mvn spring-boot:run
+
+<span style="color:var(--success);"># App starts on</span>
+http://localhost:8080
+              </div>
+            </div>
+            <div id="setup4" class="tab-content" style="display:none;">
+              <p style="color:var(--text2);font-size:13px;margin-bottom:12px;">Once running, test these URLs in your browser:</p>
+              <div class="pill-row">
+                <a href="http://localhost:8080/swagger-ui.html" target="_blank" class="pill" style="color:var(--accent);text-decoration:none;">swagger-ui.html</a>
+                <a href="http://localhost:8080/api/stats" target="_blank" class="pill" style="color:var(--success);text-decoration:none;">/api/stats</a>
+                <a href="http://localhost:8080/api/users" target="_blank" class="pill" style="color:var(--success);text-decoration:none;">/api/users</a>
+                <a href="http://localhost:8080/api-docs" target="_blank" class="pill" style="color:var(--text2);text-decoration:none;">/api-docs (JSON)</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECENT SUBMISSIONS -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📄 Recent Submissions (Sample Data)</div>
+          </div>
+          <table class="ep-table">
+            <thead>
+              <tr><th>Student</th><th>Title</th><th>Similarity</th><th>Status</th><th>Course</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Bob Habimana</td><td>DSA Assignment 2</td><td><div class="sim-bar"><div class="bar-track"><div class="bar-fill" style="width:78%;background:var(--warn);"></div></div><span class="bar-pct" style="color:var(--warn);">78%</span></div></td><td><span class="status flagged">Flagged</span></td><td>CS301</td></tr>
+              <tr><td>Claire Uwimana</td><td>DB Design Report</td><td><div class="sim-bar"><div class="bar-track"><div class="bar-fill" style="width:91%;background:var(--danger);"></div></div><span class="bar-pct" style="color:var(--danger);">91%</span></div></td><td><span class="status plagiarized">Plagiarized</span></td><td>CS401</td></tr>
+              <tr><td>Alice Nkurunziza</td><td>DSA Assignment 1</td><td><div class="sim-bar"><div class="bar-track"><div class="bar-fill" style="width:12%;background:var(--success);"></div></div><span class="bar-pct" style="color:var(--success);">12%</span></div></td><td><span class="status clean">Clean</span></td><td>CS301</td></tr>
+              <tr><td>Eve Ingabire</td><td>Management Essay</td><td><div class="sim-bar"><div class="bar-track"><div class="bar-fill" style="width:65%;background:var(--warn);"></div></div><span class="bar-pct" style="color:var(--warn);">65%</span></div></td><td><span class="status flagged">Flagged</span></td><td>BA201</td></tr>
+              <tr><td>Grace Mukamana</td><td>OOP Assignment</td><td><div class="sim-bar"><div class="bar-track"><div class="bar-fill" style="width:94%;background:var(--danger);"></div></div><span class="bar-pct" style="color:var(--danger);">94%</span></div></td><td><span class="status plagiarized">Plagiarized</span></td><td>CS301</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ====== ERD PAGE ====== -->
+      <div class="page" id="page-erd">
+        <div class="page-header">
+          <div class="page-title">📊 Entity Relationship Diagram</div>
+          <div class="page-sub">Requirement #1 — 6 tables with all JPA relationship types demonstrated</div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header"><div class="card-title">ERD — Database Schema</div></div>
+          <div class="card-body erd-wrap">
+            <svg viewBox="0 0 860 520" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:860px;display:block;">
+              <defs>
+                <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L8,3 z" fill="#6c8fff" opacity="0.7"/>
+                </marker>
+                <marker id="arrowWarn" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L8,3 z" fill="#ffaa3c" opacity="0.8"/>
+                </marker>
+                <marker id="arrowDanger" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L8,3 z" fill="#ff5c5c" opacity="0.8"/>
+                </marker>
+              </defs>
+
+              <!-- DEPARTMENT -->
+              <rect x="20" y="30" width="160" height="200" rx="8" fill="#1e2230" stroke="#6c8fff" stroke-width="1.5"/>
+              <rect x="20" y="30" width="160" height="36" rx="8" fill="#6c8fff" opacity="0.2"/>
+              <rect x="20" y="54" width="160" height="12" fill="#6c8fff" opacity="0.2"/>
+              <text x="100" y="54" text-anchor="middle" font-family="Syne,sans-serif" font-size="12" font-weight="700" fill="#6c8fff">DEPARTMENT</text>
+              <text x="35" y="85" font-family="DM Sans,sans-serif" font-size="10" fill="#f0f2f8">🔑 id: BIGINT (PK)</text>
+              <text x="35" y="103" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">name: VARCHAR(255)</text>
+              <text x="35" y="121" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">code: VARCHAR(10)</text>
+              <text x="35" y="139" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">description: TEXT</text>
+              <rect x="20" y="190" width="160" height="40" rx="0" fill="#6c8fff" opacity="0.05"/>
+              <text x="35" y="207" font-family="DM Sans,sans-serif" font-size="9" fill="#6c8fff">@OneToMany</text>
+              <text x="35" y="221" font-family="DM Sans,sans-serif" font-size="9" fill="#6c8fff">→ courses</text>
+
+              <!-- COURSE -->
+              <rect x="240" y="30" width="160" height="230" rx="8" fill="#1e2230" stroke="#b87fff" stroke-width="1.5"/>
+              <rect x="240" y="30" width="160" height="36" rx="8" fill="#b87fff" opacity="0.2"/>
+              <rect x="240" y="54" width="160" height="12" fill="#b87fff" opacity="0.2"/>
+              <text x="320" y="54" text-anchor="middle" font-family="Syne,sans-serif" font-size="12" font-weight="700" fill="#b87fff">COURSE</text>
+              <text x="255" y="85" font-family="DM Sans,sans-serif" font-size="10" fill="#f0f2f8">🔑 id: BIGINT (PK)</text>
+              <text x="255" y="103" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">title: VARCHAR(255)</text>
+              <text x="255" y="121" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">courseCode: VARCHAR(10)</text>
+              <text x="255" y="139" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">credits: INT</text>
+              <text x="255" y="157" font-family="DM Sans,sans-serif" font-size="10" fill="#ffaa3c">🔗 department_id (FK)</text>
+              <rect x="240" y="200" width="160" height="60" rx="0" fill="#b87fff" opacity="0.05"/>
+              <text x="255" y="218" font-family="DM Sans,sans-serif" font-size="9" fill="#b87fff">@ManyToOne</text>
+              <text x="255" y="232" font-family="DM Sans,sans-serif" font-size="9" fill="#b87fff">@JoinColumn(department_id)</text>
+              <text x="255" y="246" font-family="DM Sans,sans-serif" font-size="9" fill="#b87fff">@OneToMany → submissions</text>
+
+              <!-- USER -->
+              <rect x="460" y="30" width="170" height="250" rx="8" fill="#1e2230" stroke="#3de0a0" stroke-width="1.5"/>
+              <rect x="460" y="30" width="170" height="36" rx="8" fill="#3de0a0" opacity="0.15"/>
+              <rect x="460" y="54" width="170" height="12" fill="#3de0a0" opacity="0.15"/>
+              <text x="545" y="54" text-anchor="middle" font-family="Syne,sans-serif" font-size="12" font-weight="700" fill="#3de0a0">USER</text>
+              <text x="475" y="85" font-family="DM Sans,sans-serif" font-size="10" fill="#f0f2f8">🔑 id: BIGINT (PK)</text>
+              <text x="475" y="103" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">firstName: VARCHAR</text>
+              <text x="475" y="121" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">lastName: VARCHAR</text>
+              <text x="475" y="139" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">email: VARCHAR (UNIQUE)</text>
+              <text x="475" y="157" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">studentId: VARCHAR (UNIQUE)</text>
+              <text x="475" y="175" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">role: ENUM</text>
+              <text x="475" y="193" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">createdAt: DATETIME</text>
+              <rect x="460" y="210" width="170" height="70" fill="#3de0a0" opacity="0.04"/>
+              <text x="475" y="228" font-family="DM Sans,sans-serif" font-size="9" fill="#3de0a0">@OneToOne(mappedBy="user")</text>
+              <text x="475" y="242" font-family="DM Sans,sans-serif" font-size="9" fill="#3de0a0">→ location</text>
+              <text x="475" y="256" font-family="DM Sans,sans-serif" font-size="9" fill="#3de0a0">@OneToMany → submissions</text>
+
+              <!-- LOCATION -->
+              <rect x="680" y="30" width="160" height="230" rx="8" fill="#1e2230" stroke="#3dc7e0" stroke-width="1.5"/>
+              <rect x="680" y="30" width="160" height="36" rx="8" fill="#3dc7e0" opacity="0.15"/>
+              <rect x="680" y="54" width="160" height="12" fill="#3dc7e0" opacity="0.15"/>
+              <text x="760" y="54" text-anchor="middle" font-family="Syne,sans-serif" font-size="12" font-weight="700" fill="#3dc7e0">LOCATION</text>
+              <text x="695" y="85" font-family="DM Sans,sans-serif" font-size="10" fill="#f0f2f8">🔑 id: BIGINT (PK)</text>
+              <text x="695" y="103" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">address: VARCHAR</text>
+              <text x="695" y="121" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">city: VARCHAR</text>
+              <text x="695" y="139" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">provinceName: VARCHAR</text>
+              <text x="695" y="157" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">provinceCode: VARCHAR(10)</text>
+              <text x="695" y="175" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">country: VARCHAR</text>
+              <text x="695" y="193" font-family="DM Sans,sans-serif" font-size="10" fill="#ffaa3c">🔗 user_id (FK, UNIQUE)</text>
+              <rect x="680" y="205" width="160" height="55" fill="#3dc7e0" opacity="0.04"/>
+              <text x="695" y="222" font-family="DM Sans,sans-serif" font-size="9" fill="#3dc7e0">@OneToOne (OWNER)</text>
+              <text x="695" y="236" font-family="DM Sans,sans-serif" font-size="9" fill="#3dc7e0">@JoinColumn(user_id,</text>
+              <text x="695" y="250" font-family="DM Sans,sans-serif" font-size="9" fill="#3dc7e0">unique=true)</text>
+
+              <!-- SUBMISSION -->
+              <rect x="240" y="330" width="180" height="180" rx="8" fill="#1e2230" stroke="#ffaa3c" stroke-width="1.5"/>
+              <rect x="240" y="330" width="180" height="36" rx="8" fill="#ffaa3c" opacity="0.15"/>
+              <rect x="240" y="354" width="180" height="12" fill="#ffaa3c" opacity="0.15"/>
+              <text x="330" y="354" text-anchor="middle" font-family="Syne,sans-serif" font-size="12" font-weight="700" fill="#ffaa3c">SUBMISSION</text>
+              <text x="255" y="385" font-family="DM Sans,sans-serif" font-size="10" fill="#f0f2f8">🔑 id: BIGINT (PK)</text>
+              <text x="255" y="403" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">title: VARCHAR</text>
+              <text x="255" y="421" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">similarityScore: DOUBLE</text>
+              <text x="255" y="439" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">status: ENUM</text>
+              <text x="255" y="457" font-family="DM Sans,sans-serif" font-size="10" fill="#ffaa3c">🔗 user_id (FK)</text>
+              <text x="255" y="475" font-family="DM Sans,sans-serif" font-size="10" fill="#ffaa3c">🔗 course_id (FK)</text>
+              <text x="255" y="493" font-family="DM Sans,sans-serif" font-size="9" fill="#ff5c5c">@ManyToMany(mappedBy)</text>
+
+              <!-- PLAGIARISM CASE -->
+              <rect x="490" y="330" width="185" height="180" rx="8" fill="#1e2230" stroke="#ff5c5c" stroke-width="1.5"/>
+              <rect x="490" y="330" width="185" height="36" rx="8" fill="#ff5c5c" opacity="0.15"/>
+              <rect x="490" y="354" width="185" height="12" fill="#ff5c5c" opacity="0.15"/>
+              <text x="582" y="354" text-anchor="middle" font-family="Syne,sans-serif" font-size="11" font-weight="700" fill="#ff5c5c">PLAGIARISM_CASE</text>
+              <text x="505" y="385" font-family="DM Sans,sans-serif" font-size="10" fill="#f0f2f8">🔑 id: BIGINT (PK)</text>
+              <text x="505" y="403" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">caseNumber: VARCHAR</text>
+              <text x="505" y="421" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">severity: ENUM</text>
+              <text x="505" y="439" font-family="DM Sans,sans-serif" font-size="10" fill="#8b93a8">status: ENUM</text>
+              <text x="505" y="457" font-family="DM Sans,sans-serif" font-size="10" fill="#ffaa3c">🔗 investigator_id (FK)</text>
+              <text x="505" y="475" font-family="DM Sans,sans-serif" font-size="9" fill="#ff5c5c">@ManyToMany (OWNER)</text>
+              <text x="505" y="489" font-family="DM Sans,sans-serif" font-size="9" fill="#ff5c5c">@JoinTable(case_submissions)</text>
+
+              <!-- JOIN TABLE -->
+              <rect x="350" y="420" width="130" height="50" rx="6" fill="#1e2230" stroke="#ff5c5c" stroke-width="1" stroke-dasharray="4,3"/>
+              <text x="415" y="442" text-anchor="middle" font-family="Syne,sans-serif" font-size="10" font-weight="700" fill="#ff5c5c">case_submissions</text>
+              <text x="415" y="458" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="9" fill="#8b93a8">plagiarism_case_id | submission_id</text>
+
+              <!-- RELATIONSHIP LINES -->
+              <!-- Dept → Course (1:N) -->
+              <line x1="180" y1="100" x2="238" y2="100" stroke="#6c8fff" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="5,3"/>
+              <text x="185" y="93" font-family="DM Sans,sans-serif" font-size="9" fill="#6c8fff">1</text>
+              <text x="218" y="93" font-family="DM Sans,sans-serif" font-size="9" fill="#6c8fff">N</text>
+
+              <!-- User ↔ Location (1:1) -->
+              <line x1="630" y1="130" x2="678" y2="130" stroke="#3dc7e0" stroke-width="1.5" marker-end="url(#arrow)"/>
+              <text x="635" y="123" font-family="DM Sans,sans-serif" font-size="9" fill="#3dc7e0">1</text>
+              <text x="660" y="123" font-family="DM Sans,sans-serif" font-size="9" fill="#3dc7e0">1</text>
+
+              <!-- Course → Submission (1:N) -->
+              <line x1="320" y1="260" x2="320" y2="328" stroke="#b87fff" stroke-width="1.5" marker-end="url(#arrowWarn)" stroke-dasharray="5,3"/>
+              <text x="325" y="295" font-family="DM Sans,sans-serif" font-size="9" fill="#b87fff">1:N</text>
+
+              <!-- User → Submission (1:N) -->
+              <line x1="500" y1="280" x2="400" y2="330" stroke="#3de0a0" stroke-width="1.5" marker-end="url(#arrowWarn)" stroke-dasharray="5,3"/>
+              <text x="450" y="308" font-family="DM Sans,sans-serif" font-size="9" fill="#3de0a0">1:N</text>
+
+              <!-- Submission ↔ PlagiarismCase (M:N) via join table -->
+              <line x1="420" y1="450" x2="348" y2="450" stroke="#ff5c5c" stroke-width="1.5"/>
+              <line x1="480" y1="450" x2="490" y2="450" stroke="#ff5c5c" stroke-width="1.5"/>
+              <text x="345" y="440" font-family="DM Sans,sans-serif" font-size="9" fill="#ff5c5c">M:N</text>
+
+              <!-- Legend -->
+              <rect x="20" y="390" width="200" height="100" rx="8" fill="#111318" stroke="#2a2f42" stroke-width="1"/>
+              <text x="35" y="410" font-family="Syne,sans-serif" font-size="10" font-weight="700" fill="#8b93a8">RELATIONSHIP LEGEND</text>
+              <line x1="35" y1="425" x2="70" y2="425" stroke="#6c8fff" stroke-width="1.5" stroke-dasharray="4,2"/>
+              <text x="75" y="429" font-family="DM Sans,sans-serif" font-size="9" fill="#8b93a8">One-to-Many</text>
+              <line x1="35" y1="443" x2="70" y2="443" stroke="#3dc7e0" stroke-width="1.5"/>
+              <text x="75" y="447" font-family="DM Sans,sans-serif" font-size="9" fill="#8b93a8">One-to-One</text>
+              <line x1="35" y1="461" x2="70" y2="461" stroke="#ff5c5c" stroke-width="1.5"/>
+              <text x="75" y="465" font-family="DM Sans,sans-serif" font-size="9" fill="#8b93a8">Many-to-Many</text>
+              <rect x="120" y="418" width="6" height="6" fill="none" stroke="#ff5c5c" stroke-width="1" stroke-dasharray="2,1"/>
+              <text x="130" y="426" font-family="DM Sans,sans-serif" font-size="9" fill="#8b93a8">Join Table</text>
+            </svg>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Relationship Summary</div></div>
+            <div class="card-body">
+              <table class="ep-table">
+                <tr><td><span class="req-tag">1:1</span></td><td style="color:var(--text2);">User ↔ Location — unique FK in Location</td></tr>
+                <tr><td><span class="req-tag">1:N</span></td><td style="color:var(--text2);">Department → Courses (cascade ALL)</td></tr>
+                <tr><td><span class="req-tag">N:1</span></td><td style="color:var(--text2);">Course → Department (@JoinColumn)</td></tr>
+                <tr><td><span class="req-tag">M:N</span></td><td style="color:var(--text2);">PlagiarismCase ↔ Submission (case_submissions)</td></tr>
+                <tr><td><span class="req-tag">1:N</span></td><td style="color:var(--text2);">User → Submissions, Course → Submissions</td></tr>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Database Tables</div></div>
+            <div class="card-body">
+              <div class="pill-row">
+                <span class="pill" style="color:var(--accent);">department</span>
+                <span class="pill" style="color:var(--purple);">course</span>
+                <span class="pill" style="color:var(--success);">user</span>
+                <span class="pill" style="color:var(--info);">location</span>
+                <span class="pill" style="color:var(--warn);">submission</span>
+                <span class="pill" style="color:var(--danger);">plagiarism_case</span>
+                <span class="pill" style="color:var(--danger);border-style:dashed;">case_submissions</span>
+              </div>
+              <p style="margin-top:14px;font-size:12px;color:var(--text3);">7 tables total — 6 entity tables + 1 join table for Many-to-Many. All created automatically by Hibernate (ddl-auto=update).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== USERS PAGE ====== -->
+      <div class="page" id="page-users">
+        <div class="page-header">
+          <div class="page-title">👥 Users API</div>
+          <div class="page-sub">CRUD + existsBy() duplicate prevention (Requirement #7)</div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Endpoints</div></div>
+          <table class="ep-table">
+            <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Requirement</th></tr></thead>
+            <tbody>
+              <tr><td><span class="method POST">POST</span></td><td class="ep-path">/api/users</td><td>Create user — checks existsByEmail + existsByStudentId</td><td><span class="req-tag">#7</span></td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/users</td><td>Get all users with location info</td><td></td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/users/<span>{id}</span></td><td>Get user by ID</td><td></td></tr>
+              <tr><td><span class="method PUT">PUT</span></td><td class="ep-path">/api/users/<span>{id}</span></td><td>Update — uses existsByEmailAndIdNot()</td><td><span class="req-tag">#7</span></td></tr>
+              <tr><td><span class="method DELETE">DELETE</span></td><td class="ep-path">/api/users/<span>{id}</span></td><td>Delete user</td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">POST /api/users — Sample Body</div></div>
+            <div class="card-body">
+              <div class="json-block">
+                <button class="copy-btn" onclick="copyJson(this)">Copy</button>
+{<br>
+&nbsp;&nbsp;<span class="json-key">"firstName"</span>: <span class="json-str">"Alice"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"lastName"</span>: <span class="json-str">"Nkurunziza"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"email"</span>: <span class="json-str">"<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a0c1ccc9c3c5e0d5cec9d6c5d2d3c9d4d98ec1c38ed2d7">[email&#160;protected]</a>"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"studentId"</span>: <span class="json-str">"STU099"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"role"</span>: <span class="json-str">"STUDENT"</span><br>
+}
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">existsBy() — How It Works</div></div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Spring Data JPA auto-generates a COUNT query from the method name:</p>
+              <div class="json-block" style="font-size:11px;">
+<span style="color:var(--success);">// Method in UserRepository</span>
+boolean existsByEmail(String email);<br><br>
+<span style="color:var(--success);">// SQL generated automatically:</span>
+SELECT COUNT(*) > 0 FROM user WHERE email = ?<br><br>
+<span style="color:var(--success);">// For UPDATE (exclude self):</span>
+existsByEmailAndIdNot(email, id)
+<span style="color:var(--success);">// WHERE email = ? AND id != ?</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== LOCATIONS PAGE ====== -->
+      <div class="page" id="page-locations">
+        <div class="page-header">
+          <div class="page-title">📍 Locations API</div>
+          <div class="page-sub">One-to-One mapping + Province queries (Requirement #2, #6, #8)</div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Endpoints</div></div>
+          <table class="ep-table">
+            <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Req</th></tr></thead>
+            <tbody>
+              <tr><td><span class="method POST">POST</span></td><td class="ep-path">/api/locations</td><td>Save location — @Transactional + bidirectional sync</td><td><span class="req-tag">#2</span></td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/locations</td><td>Get all locations</td><td></td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/locations/user/<span>{userId}</span></td><td>Get location for a specific user</td><td><span class="req-tag">#6</span></td></tr>
+              <tr><td><span class="method PUT">PUT</span></td><td class="ep-path">/api/locations/<span>{id}</span></td><td>Update location</td><td></td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/locations/province/code/<span>{code}</span>/users</td><td>Get all users in province by CODE (JOIN FETCH)</td><td><span class="req-tag">#8</span></td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/locations/province/name/<span>{name}</span>/users</td><td>Get all users in province by NAME (partial match)</td><td><span class="req-tag">#8</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">POST /api/locations — Body</div></div>
+            <div class="card-body">
+              <div class="json-block">
+                <button class="copy-btn" onclick="copyJson(this)">Copy</button>
+{<br>
+&nbsp;&nbsp;<span class="json-key">"address"</span>: <span class="json-str">"KG 123 St"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"city"</span>: <span class="json-str">"Kigali"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"provinceName"</span>: <span class="json-str">"Kigali City"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"provinceCode"</span>: <span class="json-str">"KIG"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"country"</span>: <span class="json-str">"Rwanda"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"userId"</span>: <span class="json-num">1</span><br>
+}
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Province Codes (Sample Data)</div></div>
+            <div class="card-body">
+              <table class="ep-table">
+                <tr><td><span class="chip">KIG</span></td><td style="color:var(--text2);">Kigali City — 4 users</td></tr>
+                <tr><td><span class="chip">SP</span></td><td style="color:var(--text2);">Southern Province — 2 users</td></tr>
+                <tr><td><span class="chip">EP</span></td><td style="color:var(--text2);">Eastern Province — 2 users</td></tr>
+                <tr><td><span class="chip">WP</span></td><td style="color:var(--text2);">Western Province — 2 users</td></tr>
+                <tr><td><span class="chip">NP</span></td><td style="color:var(--text2);">Northern Province — 1 user</td></tr>
+              </table>
+              <p style="margin-top:10px;font-size:11px;color:var(--text3);">Test: GET /api/locations/province/code/KIG/users</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== SUBMISSIONS PAGE ====== -->
+      <div class="page" id="page-submissions">
+        <div class="page-header">
+          <div class="page-title">📄 Submissions API</div>
+          <div class="page-sub">CRUD operations for academic submissions</div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Endpoints</div></div>
+          <table class="ep-table">
+            <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><span class="method POST">POST</span></td><td class="ep-path">/api/submissions</td><td>Create submission for user + course</td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/submissions</td><td>Get all (no pagination)</td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/submissions/<span>{id}</span></td><td>Get by ID</td></tr>
+              <tr><td><span class="method PUT">PUT</span></td><td class="ep-path">/api/submissions/<span>{id}</span></td><td>Update submission</td></tr>
+              <tr><td><span class="method DELETE">DELETE</span></td><td class="ep-path">/api/submissions/<span>{id}</span></td><td>Delete submission</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">POST /api/submissions — Sample Body</div></div>
+          <div class="card-body">
+            <div class="json-block">
+              <button class="copy-btn" onclick="copyJson(this)">Copy</button>
+{<br>
+&nbsp;&nbsp;<span class="json-key">"title"</span>: <span class="json-str">"Data Structures Final Project"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"content"</span>: <span class="json-str">"Implementation of AVL trees and hash maps..."</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"similarityScore"</span>: <span class="json-num">0.12</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"status"</span>: <span class="json-str">"PENDING"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"userId"</span>: <span class="json-num">1</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"courseId"</span>: <span class="json-num">1</span><br>
+}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== CASES PAGE ====== -->
+      <div class="page" id="page-cases">
+        <div class="page-header">
+          <div class="page-title">⚠️ Plagiarism Cases API</div>
+          <div class="page-sub">Many-to-Many with Submission (Requirement #4)</div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Endpoints</div></div>
+          <table class="ep-table">
+            <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Req</th></tr></thead>
+            <tbody>
+              <tr><td><span class="method POST">POST</span></td><td class="ep-path">/api/cases</td><td>Create case with submissions (Many-to-Many)</td><td><span class="req-tag">#4</span></td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/cases</td><td>Get all cases</td><td></td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/cases/<span>{id}</span></td><td>Get case with all linked submissions</td><td></td></tr>
+              <tr><td><span class="method POST">POST</span></td><td class="ep-path">/api/cases/<span>{caseId}</span>/submissions/<span>{submissionId}</span></td><td>addSubmission() helper method</td><td><span class="req-tag">#4</span></td></tr>
+              <tr><td><span class="method DELETE">DELETE</span></td><td class="ep-path">/api/cases/<span>{caseId}</span>/submissions/<span>{submissionId}</span></td><td>removeSubmission() helper method</td><td><span class="req-tag">#4</span></td></tr>
+              <tr><td><span class="method PATCH">PATCH</span></td><td class="ep-path">/api/cases/<span>{id}</span>/status?status=RESOLVED</td><td>Update case status</td><td></td></tr>
+              <tr><td><span class="method DELETE">DELETE</span></td><td class="ep-path">/api/cases/<span>{id}</span></td><td>Delete case</td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">POST /api/cases — Body</div></div>
+            <div class="card-body">
+              <div class="json-block">
+                <button class="copy-btn" onclick="copyJson(this)">Copy</button>
+{<br>
+&nbsp;&nbsp;<span class="json-key">"caseNumber"</span>: <span class="json-str">"CASE-2024-006"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"description"</span>: <span class="json-str">"Identical paragraphs found"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"severity"</span>: <span class="json-str">"HIGH"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"status"</span>: <span class="json-str">"OPEN"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"investigatorId"</span>: <span class="json-num">11</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"submissionIds"</span>: [<span class="json-num">3</span>, <span class="json-num">9</span>, <span class="json-num">17</span>]<br>
+}
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Active Cases</div></div>
+            <div class="card-body">
+              <table class="ep-table">
+                <tr><td style="font-size:12px;font-family:monospace;">CASE-2024-001</td><td><span class="status open">Open</span></td><td style="font-size:11px;color:var(--text3);">HIGH — 3 submissions</td></tr>
+                <tr><td style="font-size:12px;font-family:monospace;">CASE-2024-002</td><td><span class="status flagged">Review</span></td><td style="font-size:11px;color:var(--text3);">MEDIUM — 2 submissions</td></tr>
+                <tr><td style="font-size:12px;font-family:monospace;">CASE-2024-003</td><td><span class="status resolved">Resolved</span></td><td style="font-size:11px;color:var(--text3);">HIGH — 1 submission</td></tr>
+                <tr><td style="font-size:12px;font-family:monospace;">CASE-2024-004</td><td><span class="status plagiarized">Critical</span></td><td style="font-size:11px;color:var(--text3);">CRITICAL — 2 submissions</td></tr>
+                <tr><td style="font-size:12px;font-family:monospace;">CASE-2024-005</td><td><span class="status pending">Dismissed</span></td><td style="font-size:11px;color:var(--text3);">LOW — 3 submissions</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== DEPARTMENTS PAGE ====== -->
+      <div class="page" id="page-departments">
+        <div class="page-header">
+          <div class="page-title">🏫 Departments & Courses</div>
+          <div class="page-sub">One-to-Many relationship (Requirement #5)</div>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Department Endpoints</div></div>
+            <table class="ep-table">
+              <tr><td><span class="method POST">POST</span></td><td class="ep-path">/api/departments</td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/departments</td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/departments/<span>{id}</span></td></tr>
+              <tr><td><span class="method PUT">PUT</span></td><td class="ep-path">/api/departments/<span>{id}</span></td></tr>
+              <tr><td><span class="method DELETE">DELETE</span></td><td class="ep-path">/api/departments/<span>{id}</span></td></tr>
+            </table>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Course Endpoints</div></div>
+            <table class="ep-table">
+              <tr><td><span class="method POST">POST</span></td><td class="ep-path">/api/courses</td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/courses</td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/courses/department/<span>{deptId}</span></td></tr>
+              <tr><td><span class="method PUT">PUT</span></td><td class="ep-path">/api/courses/<span>{id}</span></td></tr>
+              <tr><td><span class="method DELETE">DELETE</span></td><td class="ep-path">/api/courses/<span>{id}</span></td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">POST /api/departments</div></div>
+            <div class="card-body">
+              <div class="json-block">
+                <button class="copy-btn" onclick="copyJson(this)">Copy</button>
+{<br>
+&nbsp;&nbsp;<span class="json-key">"name"</span>: <span class="json-str">"Computer Science"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"code"</span>: <span class="json-str">"CS"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"description"</span>: <span class="json-str">"CS and Software Engineering"</span><br>
+}
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">POST /api/courses</div></div>
+            <div class="card-body">
+              <div class="json-block">
+                <button class="copy-btn" onclick="copyJson(this)">Copy</button>
+{<br>
+&nbsp;&nbsp;<span class="json-key">"title"</span>: <span class="json-str">"Data Structures"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"courseCode"</span>: <span class="json-str">"CS301"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"credits"</span>: <span class="json-num">4</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"departmentId"</span>: <span class="json-num">1</span><br>
+}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== PAGINATION PAGE ====== -->
+      <div class="page" id="page-pagination">
+        <div class="page-header">
+          <div class="page-title">📑 Pagination & Sorting</div>
+          <div class="page-sub">Requirement #3 — Three endpoints demonstrating sorting, pagination, and combined</div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Three Endpoints (Req #3)</div></div>
+          <table class="ep-table">
+            <thead><tr><th>Method</th><th>Endpoint</th><th>What It Does</th><th>Key Params</th></tr></thead>
+            <tbody>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/submissions/sorted</td><td>Sorting ONLY — no pagination</td><td><span class="chip">sortBy</span> <span class="chip">direction</span></td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/submissions/paginated</td><td>Pagination ONLY — no sorting</td><td><span class="chip">page</span> <span class="chip">size</span></td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/submissions/page</td><td>Pagination + Sorting COMBINED</td><td><span class="chip">page</span> <span class="chip">size</span> <span class="chip">sortBy</span> <span class="chip">direction</span></td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/submissions/status/<span>{status}</span></td><td>Filter by status with pagination</td><td><span class="chip">page</span> <span class="chip">size</span></td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/cases/page</td><td>Cases with pagination+sorting</td><td><span class="chip">page</span> <span class="chip">size</span> <span class="chip">sortBy</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Example Requests (Postman)</div></div>
+            <div class="card-body">
+              <p style="font-size:12px;color:var(--text3);margin-bottom:8px;">Sort by similarity descending:</p>
+              <div class="json-block" style="margin-bottom:14px;">GET /api/submissions/sorted?sortBy=<span class="json-key">similarityScore</span>&direction=<span class="json-key">desc</span></div>
+              <p style="font-size:12px;color:var(--text3);margin-bottom:8px;">Page 2, 5 items, sorted by title:</p>
+              <div class="json-block" style="margin-bottom:14px;">GET /api/submissions/page?page=<span class="json-num">1</span>&size=<span class="json-num">5</span>&sortBy=<span class="json-key">title</span>&direction=<span class="json-key">asc</span></div>
+              <p style="font-size:12px;color:var(--text3);margin-bottom:8px;">Get all FLAGGED submissions:</p>
+              <div class="json-block">GET /api/submissions/status/<span class="json-str">FLAGGED</span>?page=<span class="json-num">0</span>&size=<span class="json-num">10</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Page Response Format</div></div>
+            <div class="card-body">
+              <div class="json-block" style="font-size:11px;">
+{<br>
+&nbsp;&nbsp;<span class="json-key">"success"</span>: <span class="json-bool">true</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"data"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"content"</span>: [<span style="color:var(--text3);">/* submissions */</span>],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"pageNumber"</span>: <span class="json-num">0</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"pageSize"</span>: <span class="json-num">5</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"totalElements"</span>: <span class="json-num">20</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"totalPages"</span>: <span class="json-num">4</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"first"</span>: <span class="json-bool">true</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"last"</span>: <span class="json-bool">false</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"hasNext"</span>: <span class="json-bool">true</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"hasPrevious"</span>: <span class="json-bool">false</span><br>
+&nbsp;&nbsp;}<br>
+}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== PROVINCE PAGE ====== -->
+      <div class="page" id="page-province">
+        <div class="page-header">
+          <div class="page-title">🗺️ Province Queries</div>
+          <div class="page-sub">Requirement #8 — JOIN FETCH to avoid N+1 problem</div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Query Endpoints</div></div>
+          <table class="ep-table">
+            <thead><tr><th>Method</th><th>Endpoint</th><th>Example</th></tr></thead>
+            <tbody>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/locations/province/code/<span>{code}</span>/users</td><td class="ep-path" style="color:var(--success);">.../code/<span>KIG</span>/users</td></tr>
+              <tr><td><span class="method GET">GET</span></td><td class="ep-path">/api/locations/province/name/<span>{name}</span>/users</td><td class="ep-path" style="color:var(--success);">.../name/<span>Kigali</span>/users</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Expected Response (by KIG)</div></div>
+            <div class="card-body">
+              <div class="json-block" style="font-size:11px;">
+{<br>
+&nbsp;&nbsp;<span class="json-key">"provinceName"</span>: <span class="json-str">"Kigali City"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"provinceCode"</span>: <span class="json-str">"KIG"</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"totalUsers"</span>: <span class="json-num">4</span>,<br>
+&nbsp;&nbsp;<span class="json-key">"users"</span>: [<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"userId"</span>: <span class="json-num">1</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"fullName"</span>: <span class="json-str">"Alice Nkurunziza"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"email"</span>: <span class="json-str">"<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f594999c9690db9bb5809b9c839087869c818cdb9496db8782">[email&#160;protected]</a>"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"city"</span>: <span class="json-str">"Kigali"</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;]<br>
+}
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">JOIN FETCH Explained</div></div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7;">Without <mark>JOIN FETCH</mark>, Spring fires N+1 queries — 1 for locations, then 1 extra per user to load their data.</p>
+              <div class="json-block" style="font-size:11px;margin-bottom:12px;">
+<span style="color:var(--danger);">❌ N+1 Problem:</span>
+SELECT * FROM location WHERE province_code = ?
+<span style="color:var(--text3);">-- then for EACH location:</span>
+SELECT * FROM user WHERE id = ?  <span style="color:var(--text3);">× N times!</span>
+              </div>
+              <div class="json-block" style="font-size:11px;">
+<span style="color:var(--success);">✅ JOIN FETCH Solution:</span>
+@Query("SELECT l FROM Location l
+  JOIN FETCH l.user
+  WHERE l.provinceCode = :code")
+<span style="color:var(--text3);">-- ONE SQL query fetches everything!</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== VIVA PAGE ====== -->
+      <div class="page" id="page-viva">
+        <div class="page-header">
+          <div class="page-title">🎓 Viva-Voce Preparation</div>
+          <div class="page-sub">Requirement #9 — Click each question to reveal the answer</div>
+        </div>
+
+        <div class="viva-card" onclick="toggleViva(this)">
+          <div class="viva-q">1. Explain the ERD and its relationships</div>
+          <div class="viva-a">We have 6 entities: Department, Course, User, Location, Submission, and PlagiarismCase. The relationships are: One-to-Many between Department and Course (one department has many courses), Many-to-One the reverse. One-to-One between User and Location (each student has one location). Many-to-Many between PlagiarismCase and Submission via the case_submissions join table. Additionally User has One-to-Many with Submission, and Course has One-to-Many with Submission.</div>
+          <div class="viva-toggle">Click to reveal answer ▾</div>
+        </div>
+
+        <div class="viva-card warn-border" onclick="toggleViva(this)">
+          <div class="viva-q">2. How does saving a Location work?</div>
+          <div class="viva-a">The saveLocation() method is annotated with @Transactional, ensuring atomicity. We first fetch the User by ID, then create a Location with @OneToOne @JoinColumn(name="user_id", unique=true) pointing to that user. We also call user.setLocation(location) for bidirectional sync — this keeps the in-memory Java objects consistent even before the next database read. The unique=true on the JoinColumn creates a database-level UNIQUE constraint preventing duplicate locations per user.</div>
+          <div class="viva-toggle">Click to reveal answer ▾</div>
+        </div>
+
+        <div class="viva-card success-border" onclick="toggleViva(this)">
+          <div class="viva-q">3. How does Sorting work in Spring Data JPA?</div>
+          <div class="viva-a">Sorting uses Sort.by(sortBy).ascending() or .descending(). When passed to findAll(sort), Spring Data JPA automatically adds ORDER BY to the SQL query. I have three methods: getAllSubmissionsSorted() for sorting only, getSubmissionsPaginated() for pagination only using PageRequest.of(page, size), and getSubmissionsWithPaginationAndSorting() that combines both using PageRequest.of(page, size, sort). This generates a single optimized SQL query with LIMIT, OFFSET, and ORDER BY.</div>
+          <div class="viva-toggle">Click to reveal answer ▾</div>
+        </div>
+
+        <div class="viva-card" onclick="toggleViva(this)">
+          <div class="viva-q">4. How does Pagination improve performance?</div>
+          <div class="viva-a">Without pagination, fetching all 1000+ records wastes memory and network bandwidth. Page<T> from Spring Data JPA returns only the requested slice using SQL LIMIT and OFFSET. It also automatically runs a COUNT(*) query to calculate totalPages and totalElements. The response includes metadata: pageNumber, pageSize, totalElements, totalPages, first, last, hasNext, hasPrevious — so the client knows exactly where it is in the dataset.</div>
+          <div class="viva-toggle">Click to reveal answer ▾</div>
+        </div>
+
+        <div class="viva-card danger-border" onclick="toggleViva(this)">
+          <div class="viva-q">5. Explain the Many-to-Many join table</div>
+          <div class="viva-a">PlagiarismCase owns the relationship and has @ManyToMany with @JoinTable(name="case_submissions", joinColumns=@JoinColumn(name="plagiarism_case_id"), inverseJoinColumns=@JoinColumn(name="submission_id")). This creates a join table with two foreign key columns. Submission has @ManyToMany(mappedBy="submissions") — it's the inverse side and doesn't control the join table. I added helper methods addSubmission() and removeSubmission() to keep both sides of the in-memory relationship synchronized.</div>
+          <div class="viva-toggle">Click to reveal answer ▾</div>
+        </div>
+
+        <div class="viva-card warn-border" onclick="toggleViva(this)">
+          <div class="viva-q">6. Explain the One-to-Many foreign key usage</div>
+          <div class="viva-a">In Department, @OneToMany(mappedBy="department", cascade=CascadeType.ALL, orphanRemoval=true) tells JPA there's a collection of courses. The mappedBy points to the 'department' field in Course. In Course, @ManyToOne @JoinColumn(name="department_id") creates the actual foreign key column in the course table. Cascade ALL means deleting a Department also deletes its Courses. orphanRemoval=true means removing a Course from the list also deletes it from the database.</div>
+          <div class="viva-toggle">Click to reveal answer ▾</div>
+        </div>
+
+        <div class="viva-card success-border" onclick="toggleViva(this)">
+          <div class="viva-q">7. How does the One-to-One relationship work?</div>
+          <div class="viva-a">Location OWNS the relationship — it has @OneToOne @JoinColumn(name="user_id", unique=true). The unique=true creates a UNIQUE constraint in the database ensuring one user can only have one location. User has @OneToOne(mappedBy="user") which is the inverse side — it just references the relationship. When saving, we set location.setUser(user) AND user.setLocation(location) for bidirectional synchronization so the Java object graph stays consistent.</div>
+          <div class="viva-toggle">Click to reveal answer ▾</div>
+        </div>
+
+        <div class="viva-card" onclick="toggleViva(this)">
+          <div class="viva-q">8. How does existsBy() optimize duplicate checking?</div>
+          <div class="viva-a">Instead of fetching the full User object (SELECT * FROM user WHERE email=?), existsByEmail() generates SELECT COUNT(*) > 0 FROM user WHERE email=?. This returns a boolean using a COUNT query — much faster as no object needs to be constructed. For UPDATE scenarios, existsByEmailAndIdNot(email, id) adds WHERE email=? AND id!=? to exclude the current user being updated. When a duplicate is found, we throw DuplicateResourceException which is caught by @RestControllerAdvice and returns HTTP 409 Conflict.</div>
+          <div class="viva-toggle">Click to reveal answer ▾</div>
+        </div>
+
+        <div class="viva-card danger-border" onclick="toggleViva(this)">
+          <div class="viva-q">9. Explain the Province query and JOIN FETCH</div>
+          <div class="viva-a">Without JOIN FETCH, JPA uses LAZY loading: one query for locations, then one extra query per location to load the User — this is the N+1 problem. With @Query("SELECT l FROM Location l JOIN FETCH l.user WHERE l.provinceCode = :code"), JPA generates a single SQL JOIN that fetches both Location and User data in one round trip to the database. The LOWER() function makes the name search case-insensitive, and CONCAT('%', :name, '%') enables partial matching. Results are mapped to ProvinceUserResponse DTO with a list of UserSummary objects.</div>
+          <div class="viva-toggle">Click to reveal answer ▾</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="scroll-top" id="scrollTop" onclick="document.getElementById('mainScroll').scrollTo({top:0,behavior:'smooth'})">↑</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('mainScroll').scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function switchTab(groupId, targetId, el) {
+  const container = document.getElementById(groupId).parentElement;
+  container.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+  container.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(targetId).style.display = 'block';
+  el.classList.add('active');
+}
+
+function toggleViva(card) {
+  const answer = card.querySelector('.viva-a');
+  const toggle = card.querySelector('.viva-toggle');
+  answer.classList.toggle('show');
+  toggle.textContent = answer.classList.contains('show') ? 'Hide answer ▴' : 'Click to reveal answer ▾';
+}
+
+function copyJson(btn) {
+  const block = btn.parentElement;
+  const text = block.innerText.replace('Copy', '').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.style.color = 'var(--success)';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+
+document.getElementById('mainScroll').addEventListener('scroll', function() {
+  const btn = document.getElementById('scrollTop');
+  btn.classList.toggle('visible', this.scrollTop > 300);
+});
+
+// Animate stat values on load
+window.addEventListener(
